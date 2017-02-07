@@ -10,6 +10,7 @@ public class VersionButton : MonoBehaviour {
     
     // Use this for initialization
     void Start () {
+        buttonController = GameObject.Find("ButtonController");
         btn = GetComponent<Button>();
         btn.onClick.AddListener(TaskOnClick);
     }
@@ -21,6 +22,6 @@ public class VersionButton : MonoBehaviour {
 
     void TaskOnClick()
     {
-
+        buttonController.GetComponent<ButtonController>().versionNum = id;
     }
 }

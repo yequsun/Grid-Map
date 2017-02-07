@@ -90,7 +90,7 @@ public class Grid
         public double h = -1;
         public bool isOptimal = false;
         public Node parent = null;
-        //[NonSerialized]
+        [NonSerialized]
         private List<Node> neighbors = new List<Node>();
         
 
@@ -570,17 +570,21 @@ public class Grid
     private int ChangeDirection(int d)
     {
         System.Random rand = new System.Random();
-        if (rand.Next(0, 100) <= 30)
+        if (rand.Next(0, 100) < 60)
         {
             return d;
         }
         else
         {
-            d += rand.Next(1, 4);
-            if (d >= 4)
+            if (rand.Next(0, 100) < 50)
             {
-                d -= 4;
+                d += 1;
             }
+            else
+            {
+                d -= 1;
+            }
+            d = d % 4;
             return d;
         }
     }

@@ -14,15 +14,15 @@ public class TileInfo : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        f = -1;
-        g = -1;
-        h = -1;
         infoText = GameObject.Find("Info").GetComponent<Text>();
-	}
+        f = System.Math.Round(f, 2);
+        g = System.Math.Round(g, 2);
+        h = System.Math.Round(h, 2);
+    }
 
     void OnMouseOver()
     {
         //infoText.text = "Type: " + type + "\n" + "(" + col + "," + row + ")\n" + "f: " + f + "\n" + "g: " + g + "h: " + h;
-        infoText.text = "row " + row.ToString() + " col " + col.ToString() + "\nf "+f +" g " + g +" h "+h;
+        infoText.text = "row " + row.ToString() + " col " + col.ToString() + "\nf "+f.ToString() +" g " + g.ToString() +" h "+h.ToString();
     }
 }

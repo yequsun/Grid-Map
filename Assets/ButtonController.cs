@@ -9,8 +9,6 @@ public class ButtonController : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        gridNum = 0;
-        versionNum = 0;
 	}
 
     void Update()

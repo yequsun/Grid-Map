@@ -79,6 +79,8 @@
     <Compile Include="Assets\Grid.cs" />
     <Compile Include="Assets\GridButton.cs" />
     <Compile Include="Assets\LoadButton.cs" />
+    <Compile Include="Assets\MapGen.cs" />
+    <Compile Include="Assets\Reset.cs" />
     <Compile Include="Assets\TileInfo.cs" />
     <Compile Include="Assets\VersionButton.cs" />
   </ItemGroup>

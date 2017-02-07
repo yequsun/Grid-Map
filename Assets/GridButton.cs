@@ -9,6 +9,7 @@ public class GridButton : MonoBehaviour {
     Button btn;
 	// Use this for initialization
 	void Start () {
+        buttonController = GameObject.Find("ButtonController");
         btn = GetComponent<Button>();
         btn.onClick.AddListener(TaskOnClick);
 	}
@@ -20,6 +21,6 @@ public class GridButton : MonoBehaviour {
 
     void TaskOnClick()
     {
-
+        buttonController.GetComponent<ButtonController>().gridNum = id;
     }
 }

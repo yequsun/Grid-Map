@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class MapGen : MonoBehaviour {
     public int id;
@@ -25,15 +26,19 @@ public class MapGen : MonoBehaviour {
 
     void TaskOnClick()
     {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
         Grid g = new Grid();
         pathname = pathname + id.ToString() + "_";
         for (int i = 0; i < 10; i++)
         {
             g.SetStartAndGoal();
             //g.TestSearch();
-            string subpathname = pathname + i.ToString()+".bin";
-            Grid.WriteToBinaryFile(subpathname, g);
-            Debug.Log("one complete");
+            //string subpathname = pathname + i.ToString()+".bin";
+            string subpathname = pathname + i.ToString() + ".txt";
+            //Grid.WriteToBinaryFile(subpathname, g);
+            g.OutputGrid(subpathname);
+            //Debug.Log("one complete");
         }
 
         for (int i = 0; i < 120; i++)

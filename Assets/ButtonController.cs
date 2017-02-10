@@ -13,7 +13,8 @@ public class ButtonController : MonoBehaviour {
 
     void Update()
     {
-        pathname = Application.dataPath + @"\maps\map" + gridNum + "_" + versionNum + ".bin";
+        //pathname = Application.dataPath + @"\maps\map" + gridNum + "_" + versionNum + ".bin";
+        pathname = Application.dataPath + @"\maps\map" + gridNum + "_" + versionNum + ".txt";
     }
 
     public string GetPath()

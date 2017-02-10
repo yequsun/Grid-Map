@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class LoadButton : MonoBehaviour {
     public GameObject bcObj;
@@ -35,11 +36,11 @@ public class LoadButton : MonoBehaviour {
         //g = new Grid();
         //Grid.WriteToBinaryFile(Application.dataPath + @"\maps\map0_0.bin",g);
         //Debug.Log("complete");
-
-        
+        //SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         string pathName = bcObj.GetComponent<ButtonController>().GetPath();
-        Debug.Log(bcObj.GetComponent<ButtonController>().GetPath());
-        g = Grid.ReadFromBinaryFile(pathName);
+        //Debug.Log(bcObj.GetComponent<ButtonController>().GetPath());
+        //g = Grid.ReadFromBinaryFile(pathName);
+        g = new Grid(pathName);
         g.TestSearch();
         pText.text = "Time: " + g.astar[0].ToString() + "\nNodes Expanded: " + g.astar[1].ToString() + "\nMax Fringe Size: " + g.astar[2].ToString();
         for (int i = 0; i < 120; i++)

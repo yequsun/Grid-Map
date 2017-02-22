@@ -2,33 +2,39 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 [Serializable]
 public class Grid
 {
     public static Node[,] grid = new Node[120, 160];
     private ArrayList centers = new ArrayList();
+    private List<long[]> metrics = new List<long[]>();
     public int s_x = 0;
     public int s_y = 0;
     public int g_x = 0;
     public int g_y = 0;
-    public long[] ucs = new long[3];
-    public long[] astar = new long[3];
-    public long[] astar2 = new long[3];
-    public long[] astar3 = new long[3];
-    public long[] astar4 = new long[3];
-    public long[] astar5 = new long[3];
     public long nodesExpanded = 0;
     public long maxFringeSize = 0;
-    private System.Random rand = new System.Random();
+    public double pathCost = 0;
+    private Random rand = new Random();
     private PriorityQueue fringe = new PriorityQueue();
+    private PriorityQueue[] open;
+    private HashSet<Node>[] closed;
+    private Node[] bp;
+    public double w1 = 1;
+    public double w2 = 1;
 
+    public Node GetNode(int i, int j)
+    {
+        return grid[i, j];
+    }
     [Serializable]
     private class PriorityQueue
     {
         List<Node> Values = new List<Node>();
         List<double> Priorities = new List<double>();
-        public int NumItems
+        public int Count
         {
             get
             {
@@ -62,6 +68,42 @@ public class Grid
             Priorities.RemoveAt(best_index);
         }
 
+        public Node Top()
+        {
+            int best_index = 0;
+            if (Priorities.Count > 0)
+            {
+                double best_priority = Priorities[0];
+                for (int i = 1; i < Priorities.Count; i++)
+                {
+                    if (best_priority > Priorities[i])
+                    {
+                        best_priority = Priorities[i];
+                        best_index = i;
+                    }
+                }
+                return Values[best_index];
+            }
+            return null;
+        }
+
+        public double MinKey()
+        {
+            if (Priorities.Count > 0)
+            {
+                double best_priority = Priorities[0];
+                for (int i = 1; i < Priorities.Count; i++)
+                {
+                    if (best_priority > Priorities[i])
+                    {
+                        best_priority = Priorities[i];
+                    }
+                }
+                return best_priority;
+            }
+            return 0;
+        }
+
         public void Remove(Node n)
         {
             int i = Values.IndexOf(n);
@@ -89,10 +131,10 @@ public class Grid
         public double g = -1;
         public double h = -1;
         public bool isOptimal = false;
-        public Node parent = null;
-        [NonSerialized]
         private List<Node> neighbors = new List<Node>();
-        
+        public Node parent = null;
+        public double[] g2 = new double[5];
+        public Node[] bp = new Node[5];
 
         public Node(int x, int y)
         {
@@ -250,8 +292,8 @@ public class Grid
     {
         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@path))
         {
-            file.WriteLine(s_x+" "+s_y);
-            file.WriteLine(g_x+" "+g_y);
+            file.WriteLine(s_x + " " + s_y);
+            file.WriteLine(g_x + " " + g_y);
             foreach (string s in centers)
             {
                 file.WriteLine(s);
@@ -267,30 +309,30 @@ public class Grid
         }
     }
 
-    public bool Search(bool isUniform, double w = 1)
+    public bool Search(Func<int, int, int, int, double> h, double w = 1)
     {
         nodesExpanded = 0;
         Node s = grid[s_x, s_y];
         s.isOptimal = true;
         s.parent = null;
         s.g = 0;
-        if (isUniform)
-            s.h = w * Math.Sqrt(Math.Pow(s.x - g_x, 2) + Math.Pow(s.y - g_y, 2));
-        else s.h = 0;
+        s.h = w * h(s.x, s.y, g_x, g_y);
         s.f = s.g + s.h;
         fringe.Enqueue(s, s.g);
         maxFringeSize = 1;
         HashSet<int> closed = new HashSet<int>();
         double p;
-        while (fringe.NumItems != 0)
+        while (fringe.Count != 0)
         {
             fringe.Dequeue(out s, out p);
             nodesExpanded++;
             if (s.x == g_x && s.y == g_y)
             {
                 s.isOptimal = true;
+                pathCost = 0;
                 while (s.parent != null)
                 {
+                    pathCost += Cost(s, s.parent);
                     s = s.parent;
                     s.isOptimal = true;
                 }
@@ -310,9 +352,7 @@ public class Grid
                     if (s.g + c < n.g)
                     {
                         n.g = s.g + c;
-                        if (isUniform)
-                            n.h = w * Math.Sqrt(Math.Pow(n.x - g_x, 2) + Math.Pow(n.y - g_y, 2));
-                        else n.h = 0;
+                        n.h = w * h(s.x, s.y, g_x, g_y); ;
                         n.f = n.g + n.h;
                         n.parent = s;
                         if (fringe.Contains(n))
@@ -320,7 +360,7 @@ public class Grid
                             fringe.Remove(n);
                         }
                         fringe.Enqueue(n, n.f);
-                        maxFringeSize = Math.Max(fringe.NumItems, maxFringeSize);
+                        maxFringeSize = Math.Max(fringe.Count, maxFringeSize);
                     }
                 }
             }
@@ -363,7 +403,7 @@ public class Grid
             c *= 1.5;
         else if (sCell == '2')
             c *= 2.0;
-        if (sRiver && nRiver)
+        if (sRiver && nRiver && (s.x == n.x || s.y == n.y))
             c /= 4.0;
         return c;
     }
@@ -387,10 +427,9 @@ public class Grid
         int direction = 0; //initial direction and boudary
         int x = 0; // origin x coordinate
         int y = 0; // origin y coordinate
-        int length = 0;
+        int Cost = 0;
         bool intersect = false;
         bool boudary = false;
-        System.Random rand = new System.Random();
         direction = rand.Next(0, 4);//0 top-down 1 right-left 2 bottom-up 3 left-right
         switch (direction)
         {
@@ -414,33 +453,32 @@ public class Grid
 
         while (!boudary && !intersect)
         {
-            for(int i = 0; i < 20; i++)
+            for (int i = 0; i < 20; i++)
             {
-                if (CheckBoundary(x,y))
+                if (CheckBoundary(x, y))
                 {
                     boudary = true;
                     break;
                 }
 
-                if (CheckIntersect(x,y))
+                if (CheckIntersect(x, y))
                 {
                     intersect = true;
                     break;
                 }
-
                 Node cur = grid[x, y];
-                
-                if(cur.GetCell() == '1')
+
+                if (cur.GetCell() == '1')
                 {
                     cur.SetCell('A');
                 }
 
-                if(cur.GetCell() == '2')
+                if (cur.GetCell() == '2')
                 {
                     cur.SetCell('B');
                 }
 
-                length++;
+                Cost++;
 
                 if (i != 19)
                 {
@@ -491,7 +529,7 @@ public class Grid
             return false;
         }
 
-        if (length < 100)
+        if (Cost < 100)
         {
             EraseHighway();
             return false;
@@ -505,7 +543,7 @@ public class Grid
 
     private bool CheckIntersect(int x, int y)
     {
-        if(grid[x,y].GetCell() == 'A' || grid[x, y].GetCell() == 'B' || grid[x, y].GetCell() == 'a' || grid[x, y].GetCell() == 'b')
+        if (grid[x, y].GetCell() == 'A' || grid[x, y].GetCell() == 'B' || grid[x, y].GetCell() == 'a' || grid[x, y].GetCell() == 'b')
         {
             return true;
         }
@@ -517,7 +555,7 @@ public class Grid
 
     private bool CheckBoundary(int x, int y)
     {
-        if(x<0 || y<0 || x>119 || y > 159)
+        if (x < 0 || y < 0 || x > 119 || y > 159)
         {
             return true;
         }
@@ -569,8 +607,7 @@ public class Grid
 
     private int ChangeDirection(int d)
     {
-        System.Random rand = new System.Random();
-        if (rand.Next(0, 100) < 60)
+        if (rand.Next(0, 100) <= 60)
         {
             return d;
         }
@@ -652,95 +689,14 @@ public class Grid
 
             } while (!goal.GetCell().Equals('1') && !goal.GetCell().Equals('2'));
 
-            double a2 = Math.Pow((goalX - startX), 2);
-            double b2 = Math.Pow((goalY - startY), 2);
-            distance = Math.Sqrt(a2 + b2);
-            Console.WriteLine("distance: " + distance);
+            distance = (goalX - startX) ^ 2 + (goalY - startY) ^ 2;
+            distance = Math.Sqrt(distance);
 
         } while (distance < 100);
-
         this.s_x = startX;
         this.s_y = startY;
         this.g_x = goalX;
         this.g_y = goalY;
-    }
-
-    public bool TestSearch()
-    {
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-        int tests = 1;
-        /*
-        for (int i = 0; i < tests; i++)
-        {
-            if(!Search(false)) return false;
-        }
-        watch.Stop();
-        ucs[0] = watch.ElapsedTicks / tests;
-        ucs[1] = nodesExpanded;
-        ucs[2] = maxFringeSize;
-        Console.WriteLine("Uniform Cost:");
-        Console.WriteLine("Time: "+ucs[0]+" Expansion: "+ucs[1]+" Space: "+ucs[2]);
-        */
-        watch = System.Diagnostics.Stopwatch.StartNew();
-        for (int i = 0; i < tests; i++)
-        {
-            Search(true);
-        }
-        watch.Stop();
-        astar[0] = watch.ElapsedTicks / tests;
-        astar[1] = nodesExpanded;
-        astar[2] = maxFringeSize;
-        Console.WriteLine("A*:");
-        Console.WriteLine("Time: "+astar[0]+" Expansion: "+astar[1]+" Space: "+astar[2]);
-        /*
-        watch = System.Diagnostics.Stopwatch.StartNew();
-        for (int i = 0; i < tests; i++)
-        {
-            Search(true, 2);
-        }
-        watch.Stop();
-        astar2[0] = watch.ElapsedTicks / tests;
-        astar2[1] = nodesExpanded;
-        astar2[2] = maxFringeSize;
-        Console.WriteLine("A* (2):");
-        Console.WriteLine("Time: "+astar2[0]+" Expansion: "+astar2[1]+" Space: "+astar2[2]);
-
-        watch = System.Diagnostics.Stopwatch.StartNew();
-        for (int i = 0; i < tests; i++)
-        {
-            Search(true, 3);
-        }
-        watch.Stop();
-        astar3[0] = watch.ElapsedTicks / tests;
-        astar3[1] = nodesExpanded;
-        astar3[2] = maxFringeSize;
-        Console.WriteLine("A* (3):");
-        Console.WriteLine("Time: "+astar3[0]+" Expansion: "+astar3[1]+" Space: "+astar3[2]);
-        
-        watch = System.Diagnostics.Stopwatch.StartNew();
-        for (int i = 0; i < tests; i++)
-        {
-            Search(true, 4);
-        }
-        watch.Stop();
-        astar4[0] = watch.ElapsedTicks / tests;
-        astar4[1] = nodesExpanded;
-        astar4[2] = maxFringeSize;
-        Console.WriteLine("A* (4):");
-        Console.WriteLine("Time: "+astar4[0]+" Expansion: "+astar4[1]+" Space: "+astar4[2]);
-        watch = System.Diagnostics.Stopwatch.StartNew();
-        for (int i = 0; i < tests; i++)
-        {
-            Search(true, 5);
-        }
-        watch.Stop();
-        */
-        astar5[0] = watch.ElapsedTicks / tests;
-        astar5[1] = nodesExpanded;
-        astar5[2] = maxFringeSize;
-        Console.WriteLine("A* (5):");
-        Console.WriteLine("Time: "+astar5[0]+" Expansion: "+astar5[1]+" Space: "+astar5[2]);
-        return true;
     }
 
     public static void WriteToBinaryFile(string filePath, Grid objectToWrite, bool append = false)
@@ -761,31 +717,439 @@ public class Grid
         }
     }
 
-    public Node GetNode(int i, int j)
+    private static double NoHeuristic(int s_x, int s_y, int g_x, int g_y)
     {
-        return grid[i, j];
+        return 0;
+    }
+    private static double Euclidean(int s_x, int s_y, int g_x, int g_y)
+    {
+        return Math.Sqrt(Math.Pow(s_x - g_x, 2) + Math.Pow(s_y - g_y, 2));
+    }
+    private static double EuclideanBy4(int s_x, int s_y, int g_x, int g_y)
+    {
+        return Euclidean(s_x, s_y, g_x, g_y) / 4;
     }
 
-   /* public static int Main(string[] args)
+    private static double Manhattan(int s_x, int s_y, int g_x, int g_y)
     {
-        Grid g = new Grid();;
+        double dx = s_x - g_x;
+        double dy = s_y - g_y;
+        double dMan = Math.Abs(dx) + Math.Abs(dy);
+        return dMan;
+    }
+
+    private static double ManhattanBy4(int s_x, int s_y, int g_x, int g_y)
+    {
+        return Manhattan(s_x, s_y, g_x, g_y) / 4;
+    }
+
+    private static double Chebyshev(int s_x, int s_y, int g_x, int g_y)
+    {
+        return Math.Max(Math.Abs(s_x - g_x), Math.Abs(s_y - g_y));
+    }
+
+    private static double ChebyshevBy4(int s_x, int s_y, int g_x, int g_y)
+    {
+        return Chebyshev(s_x, s_y, g_x, g_y) / 4;
+    }
+    private double NearestCenter(int x, int y, int dummy1, int dummy2)
+    {
+        double[] distances = new double[8];
+        string[] pair;
+        for (int i = 0; i < 8; i++)
+        {
+            string cur = this.centers[i].ToString();
+            pair = cur.Split(' ');
+            int x1 = Convert.ToInt32(pair[0]);
+            int y1 = Convert.ToInt32(pair[1]);
+            distances[i] = Euclidean(x, y, x1, y1);
+        }
+        return -distances.Min();
+    }
+
+    public static int Main(string[] args)
+    {
+        Grid g = new Grid();
         string path;
         string curPath;
-        for (int j=0; j<5; j++){
-            path = "map"+j+"_";
-            for(int i=0;i<10;i++){
-                if(!g.TestSearch()) {
-                    Console.WriteLine("Search failed");
-                    continue;
-                }
-                Console.WriteLine();
-                curPath = path+i+".bin";
-                WriteToBinaryFile(curPath,g);
+        long[] m;
+        long[,] avgs = new long[4, 4];
+        for (int j = 0; j < 5; j++)
+        {
+            path = "maps/map" + j + "_";
+            for (int i = 0; i < 1; i++)
+            {
+                // g = ReadFromBinaryFile(path+i+".bin");
+                // for(int k=0; k<4; k++) {
+                //     m = g.metrics[k];
+                //     for(int l=0; l<4;l++) {
+                //         avgs[k,l] += m[l];
+                //     }
+                // }
+                g.w2 = 1.25;
+                g.TestSearch();
+                g.w1 = 2;
+                g.TestSearch();
+                g.w2 = 2;
+                g.w1 = 1;
+                g.TestSearch();
+                g.w2 = 1;
+                g.w1 = 3;
+                g.TestSearch();
+
+                curPath = path + i + ".bin";
+                WriteToBinaryFile(curPath, g);
                 g.SetStartAndGoal();
             }
             g = new Grid();
         }
+        // for (int a=0;a<4;a++) {
+        //     for(int b=0;b<4;b++) {
+        //         Console.Write(avgs[a,b]/50 + " ");
+        //     }
+        // Console.WriteLine();
+        // }
         return 0;
     }
-    */
+
+    private void TestSearch()
+    {
+        long[] m = new long[4];
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        int tests = 10;
+        for (int i = 0; i < tests; i++)
+        {
+            IntergratedSearch();
+        }
+        watch.Stop();
+        m[0] = watch.ElapsedTicks / tests;
+        m[1] = nodesExpanded;
+        m[2] = (long)pathCost;
+        m[3] = maxFringeSize;
+        metrics.Add(m);
+        foreach (long i in m)
+        {
+            Console.Write(i + " ");
+        }
+        Console.WriteLine();
+    }
+
+    public void SequentialSearch()
+    {
+        maxFringeSize = 0;
+        open = new PriorityQueue[5];
+        closed = new HashSet<Node>[5];
+        Node s = grid[s_x, s_y];
+        Node g = grid[g_x, g_y];
+        s.bp = new Node[5];
+        g.bp = new Node[5];
+        for (int i = 0; i < 5; i++)
+        {
+            open[i] = new PriorityQueue();
+            closed[i] = new HashSet<Node>();
+            s.g2[i] = 0;
+            g.g2[i] = Double.PositiveInfinity;
+            open[i].Enqueue(s, Key(s, i));
+        }
+        double p;
+        while (open[0].MinKey() < Double.PositiveInfinity)
+        {
+            for (int i = 1; i < 5; i++)
+            {
+                if (open[i].MinKey() <= w2 * open[0].MinKey())
+                {
+                    if (g.g2[i] < Double.PositiveInfinity)
+                    {
+                        pathCost = 0;
+                        while (g.bp[i] != null)
+                        {
+                            g.isOptimal = true;
+                            try
+                            {
+                                pathCost += Cost(g, g.bp[i]);
+                            }
+                            catch { }
+                            g = g.bp[i];
+                        }
+                        g.isOptimal = true;
+                        nodesExpanded = 0;
+                        for (int j = 0; j < 5; j++)
+                            nodesExpanded += closed[j].Count;
+                        return;
+                    }
+                    else
+                    {
+                        s = open[i].Top();
+                        ExpandState(s, i);
+                        closed[i].Add(s);
+                    }
+                }
+                else if (g.g2[0] < Double.PositiveInfinity && s.g2[0] <= open[0].MinKey())
+                {
+                    pathCost = 0;
+                    while (g.bp[0] != null)
+                    {
+                        g.isOptimal = true;
+                        try
+                        {
+                            pathCost += Cost(g, g.bp[0]);
+                        }
+                        catch { }
+                        g = g.bp[0];
+                    }
+                    g.isOptimal = true;
+                    nodesExpanded = 0;
+                    for (int j = 0; j < 5; j++)
+                        nodesExpanded += closed[j].Count;
+                    return;
+                }
+                else
+                {
+                    s = open[0].Top();
+                    ExpandState(s, 0);
+                    closed[0].Add(s);
+                }
+            }
+        }
+        Console.WriteLine("Fail");
+    }
+
+    public double Key(Node n, int i)
+    {
+        //node n: node to work with
+        //int i: h function index
+        //double w1: weight w1
+        Func<int, int, int, int, double> hf;
+        switch (i)
+        {
+            case 0:
+                hf = ManhattanBy4;
+                break;
+            case 1:
+                hf = Euclidean;
+                break;
+            case 2:
+                hf = Chebyshev;
+                break;
+            case 3:
+                hf = NearestCenter;
+                break;
+            case 4:
+                hf = Manhattan;
+                break;
+            default:
+                hf = ManhattanBy4;
+                break;
+        }
+        double h = hf(n.x, n.y, g_x, g_y);
+        return n.g2[i] + w1 * h;
+    }
+
+    public void ExpandState(Node s, int i)
+    {
+        open[i].Remove(s);
+        foreach (Node n in s.GetNeighbors())
+        {
+            if (!closed[i].Contains(n))
+            {
+                n.g2[i] = Double.PositiveInfinity;
+                n.bp[i] = null;
+            }
+            if (n.g2[i] > s.g2[i] + Cost(s, n))
+            {
+                n.g2[i] = s.g2[i] + Cost(s, n);
+                n.bp[i] = s;
+                if (!closed[i].Contains(n))
+                {
+                    try
+                    {
+                        open[i].Remove(n);
+                    }
+                    catch { }
+                    open[i].Enqueue(n, Key(n, i));
+                }
+            }
+        }
+    }
+
+    public void IntergratedSearch()
+    {
+        Node s = grid[s_x, s_y];
+        Node g = grid[g_x, g_y];
+        open = new PriorityQueue[5];
+        closed = new HashSet<Node>[2];
+        s.bp = new Node[1];
+        g.bp = new Node[1];
+        //use node.parent as bp
+        for (int i = 0; i < 5; i++)
+        {
+            open[i] = new PriorityQueue();
+            s.g2[i] = 0;
+            g.g2[i] = Double.PositiveInfinity;
+            open[i].Enqueue(s, KeyI(s, i));
+        }
+
+        closed[0] = new HashSet<Node>();
+        closed[1] = new HashSet<Node>();
+
+        while (open[0].MinKey() < Double.PositiveInfinity)
+        {
+            for (int i = 1; i < 5; i++)
+            {
+                // Console.WriteLine(closed[0].Count + " " + closed[1].Count);
+                if (open[i].MinKey() <= w2 * open[0].MinKey())
+                {
+                    if (g.g2[0] <= open[i].MinKey())
+                    {
+                        if (g.g2[0] < Double.PositiveInfinity)
+                        {
+                            pathCost = 0;
+                            while (g.bp[0] != null)
+                            {
+                                g.isOptimal = true;
+                                try
+                                {
+                                    pathCost += Cost(g, g.bp[0]);
+                                }
+                                catch { }
+                                g = g.bp[0];
+                            }
+                            g.isOptimal = true;
+                            nodesExpanded = 0;
+                            for (int j = 0; j < 2; j++)
+                            {
+                                nodesExpanded += closed[j].Count;
+                            }
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        s = open[i].Top();
+                        if (s == null) continue;
+                        // Console.WriteLine(i + " " +open[i].Count);
+                        ExpandStateI(s);
+                        closed[1].Add(s);
+                    }
+                }
+                else if (g.g2[0] < Double.PositiveInfinity && s.g2[0] <= open[0].MinKey())
+                {
+                    pathCost = 0;
+                    while (g.bp[0] != null)
+                    {
+                        g.isOptimal = true;
+                        try
+                        {
+                            pathCost += Cost(g, g.bp[0]);
+                        }
+                        catch { }
+                        g = g.bp[0];
+                    }
+                    g.isOptimal = true;
+                    nodesExpanded = 0;
+                    for (int j = 0; j < 2; j++)
+                        nodesExpanded += closed[j].Count;
+                    return;
+                }
+                else
+                {
+                    s = open[0].Top();
+                    if (s == null) continue;
+                    // Console.WriteLine(i + " " +open[i].Count);
+                    ExpandStateI(s);
+                    closed[0].Add(s);
+                }
+            }
+        }
+
+    }
+    public void ExpandStateI(Node s)
+    {
+        // Console.WriteLine(s==null);
+        for (int i = 0; i < 5; i++)
+            try
+            {
+                open[i].Remove(s);
+            }
+            catch { }
+        long f = 0;
+        for (int j = 0; j < 5; j++)
+        {
+            f += open[j].Count;
+        }
+
+        maxFringeSize = Math.Max(f, maxFringeSize);
+        foreach (Node n in s.GetNeighbors())
+        {
+            if (!closed[0].Contains(n) && !closed[1].Contains(n))
+            {
+                n.g2[0] = Double.PositiveInfinity;
+                n.bp[0] = null;
+            }
+            if (n.g2[0] > s.g2[0] + Cost(s, n))
+            {
+                n.g2[0] = s.g2[0] + Cost(s, n);
+                n.bp[0] = s;
+                if (!closed[0].Contains(n))
+                {
+                    try
+                    {
+                        open[0].Remove(n);
+                    }
+                    catch { }
+                    open[0].Enqueue(n, KeyI(n, 0));
+                    // Console.WriteLine(0 + " enqueue");
+                    if (!closed[1].Contains(n))
+                    {
+                        for (int i = 1; i < 5; i++)
+                        {
+                            if (KeyI(n, i) <= w2 * KeyI(n, 0))
+                            {
+                                try
+                                {
+                                    open[i].Remove(n);
+                                }
+                                catch { }
+                                // Console.WriteLine(i + " enqueue");
+                                open[i].Enqueue(n, KeyI(n, i));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    public double KeyI(Node n, int i)
+    {
+        //node n: node to work with
+        //int i: h function index
+        //double w1: weight w1
+        Func<int, int, int, int, double> hf;
+        switch (i)
+        {
+            case 0:
+                hf = ManhattanBy4;
+                break;
+            case 1:
+                hf = Euclidean;
+                break;
+            case 2:
+                hf = Chebyshev;
+                break;
+            case 3:
+                hf = NearestCenter;
+                hf = ChebyshevBy4;
+                break;
+            case 4:
+                hf = Manhattan;
+                break;
+            default:
+                hf = ManhattanBy4;
+                break;
+        }
+        double h = hf(n.x, n.y, g_x, g_y);
+        return n.g2[0] + w1 * h;
+    }
 }

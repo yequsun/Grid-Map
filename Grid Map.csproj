@@ -76,13 +76,67 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\ButtonController.cs" />
+    <Compile Include="Assets\Go2Map.cs" />
     <Compile Include="Assets\Grid.cs" />
     <Compile Include="Assets\GridButton.cs" />
+    <Compile Include="Assets\Heuristic.cs" />
     <Compile Include="Assets\LoadButton.cs" />
     <Compile Include="Assets\MapGen.cs" />
     <Compile Include="Assets\Reset.cs" />
     <Compile Include="Assets\TileInfo.cs" />
     <Compile Include="Assets\VersionButton.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\maps\map0_0.txt" />
+    <None Include="Assets\maps\map0_1.txt" />
+    <None Include="Assets\maps\map0_2.txt" />
+    <None Include="Assets\maps\map0_3.txt" />
+    <None Include="Assets\maps\map0_4.txt" />
+    <None Include="Assets\maps\map0_5.txt" />
+    <None Include="Assets\maps\map0_6.txt" />
+    <None Include="Assets\maps\map0_7.txt" />
+    <None Include="Assets\maps\map0_8.txt" />
+    <None Include="Assets\maps\map0_9.txt" />
+    <None Include="Assets\maps\map1_0.txt" />
+    <None Include="Assets\maps\map1_1.txt" />
+    <None Include="Assets\maps\map1_2.txt" />
+    <None Include="Assets\maps\map1_3.txt" />
+    <None Include="Assets\maps\map1_4.txt" />
+    <None Include="Assets\maps\map1_5.txt" />
+    <None Include="Assets\maps\map1_6.txt" />
+    <None Include="Assets\maps\map1_7.txt" />
+    <None Include="Assets\maps\map1_8.txt" />
+    <None Include="Assets\maps\map1_9.txt" />
+    <None Include="Assets\maps\map2_0.txt" />
+    <None Include="Assets\maps\map2_1.txt" />
+    <None Include="Assets\maps\map2_2.txt" />
+    <None Include="Assets\maps\map2_3.txt" />
+    <None Include="Assets\maps\map2_4.txt" />
+    <None Include="Assets\maps\map2_5.txt" />
+    <None Include="Assets\maps\map2_6.txt" />
+    <None Include="Assets\maps\map2_7.txt" />
+    <None Include="Assets\maps\map2_8.txt" />
+    <None Include="Assets\maps\map2_9.txt" />
+    <None Include="Assets\maps\map3_0.txt" />
+    <None Include="Assets\maps\map3_1.txt" />
+    <None Include="Assets\maps\map3_2.txt" />
+    <None Include="Assets\maps\map3_3.txt" />
+    <None Include="Assets\maps\map3_4.txt" />
+    <None Include="Assets\maps\map3_5.txt" />
+    <None Include="Assets\maps\map3_6.txt" />
+    <None Include="Assets\maps\map3_7.txt" />
+    <None Include="Assets\maps\map3_8.txt" />
+    <None Include="Assets\maps\map3_9.txt" />
+    <None Include="Assets\maps\map4_0.txt" />
+    <None Include="Assets\maps\map4_1.txt" />
+    <None Include="Assets\maps\map4_2.txt" />
+    <None Include="Assets\maps\map4_3.txt" />
+    <None Include="Assets\maps\map4_4.txt" />
+    <None Include="Assets\maps\map4_5.txt" />
+    <None Include="Assets\maps\map4_6.txt" />
+    <None Include="Assets\maps\map4_7.txt" />
+    <None Include="Assets\maps\map4_8.txt" />
+    <None Include="Assets\maps\map4_9.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

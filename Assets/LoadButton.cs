@@ -41,8 +41,12 @@ public class LoadButton : MonoBehaviour {
         //Debug.Log(bcObj.GetComponent<ButtonController>().GetPath());
         //g = Grid.ReadFromBinaryFile(pathName);
         g = new Grid(pathName);
-        g.TestSearch();
-        pText.text = "Time: " + g.astar[0].ToString() + "\nNodes Expanded: " + g.astar[1].ToString() + "\nMax Fringe Size: " + g.astar[2].ToString();
+        //g.SequentialSearch();
+        g.IntergratedSearch();
+        //g.TestSearch();
+        //g.Search(Grid.ManhattanBy4);
+        //g.TestSearch();
+        //pText.text = "Time: " + g.astar[0].ToString() + "\nNodes Expanded: " + g.astar[1].ToString() + "\nMax Fringe Size: " + g.astar[2].ToString();
         for (int i = 0; i < 120; i++)
         {
             for(int j = 0; j < 160; j++)
